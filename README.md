@@ -1,0 +1,262 @@
+# Performance-Test-Script
+
+<?php
+$start_time = microtime(true);
+$method = $_SERVER['REQUEST_METHOD'];
+$type = "GET";
+$process_type = isset($_POST['process']) ? $_POST['process'] : 'none';
+
+if ($method === 'POST') {
+    if ($process_type === 'post') {
+        $type = "POST";
+    } elseif ($process_type === '1s') {
+        $type = "POST + 1s processing";
+        while (microtime(true) - $start_time < 1.0) {
+            password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT, ['cost' => 10]);
+        }
+    } elseif ($process_type === '2s') {
+        $type = "POST + 2s processing";
+        while (microtime(true) - $start_time < 2.0) {
+            password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT, ['cost' => 10]);
+        }
+    }
+}
+$server_duration = number_format((microtime(true) - $start_time), 4);
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Lab</title>
+    <style>
+        :root {
+            --bg-color: #020617;
+            --card-bg: #0f172a;
+            --btn-bg: #1e293b;
+            --violet: #a78bfa;
+            --violet-border: rgba(139, 92, 246, 0.4);
+            --orange: #fb923c;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 32rem;
+            width: 100%;
+            padding: 2rem;
+            background-color: var(--card-bg);
+            border-radius: 1.5rem;
+            border: 2px solid var(--violet-border);
+            box-shadow: 0 0 50px -12px rgba(139, 92, 246, 0.3);
+            box-sizing: border-box;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 900;
+            color: var(--violet);
+            font-style: italic;
+            margin: 0;
+            text-align: center;
+        }
+
+        .host-info {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-family: ui-monospace, monospace;
+            text-align: center;
+            margin-top: 0.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metrics-box {
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            background-color: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            backdrop-filter: blur(4px);
+            margin-bottom: 2rem;
+        }
+
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-cols: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .label {
+            display: block;
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+            color: var(--text-dim);
+        }
+
+        .value {
+            font-family: ui-monospace, monospace;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 1rem 0;
+            background-color: var(--btn-bg);
+            border: 2px solid var(--violet-border);
+            color: var(--violet);
+            font-weight: 700;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.875rem;
+            box-sizing: border-box;
+        }
+
+        .btn:hover {
+            background-color: #8b5cf6;
+            color: white;
+            border-color: #8b5cf6;
+        }
+
+        .btn-orange {
+            color: var(--orange);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-orange:hover {
+            background-color: var(--orange);
+            border-color: var(--orange);
+        }
+
+        .explanation {
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .footer {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            background-color: rgba(139, 92, 246, 0.2);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.625rem;
+            font-family: ui-monospace, monospace;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Performance Lab</h1>
+            <p class="host-info">Host: <?php echo $_SERVER['HTTP_HOST']; ?></p>
+        </div>
+
+        <div class="metrics-box">
+            <div class="metrics-row">
+                <span class="label" style="color: var(--violet);">Request Method</span>
+                <span class="value" style="color: <?php echo ($process_type !== 'none' && $process_type !== 'post') ? 'var(--orange)' : 'var(--violet)'; ?>">
+                    <?php echo $type; ?>
+                </span>
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <span class="label">Server Side</span>
+                    <span class="value" style="color: white;"><?php echo $server_duration; ?>s</span>
+                </div>
+                <div style="text-align: right;">
+                    <span class="label">Full Round Trip</span>
+                    <span id="total-duration" class="value" style="color: var(--violet);">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="grid">
+                <a href="?" onclick="markTime()" class="btn">GET</a>
+                <form method="POST" action="" onsubmit="markTime()">
+                    <input type="hidden" name="process" value="post">
+                    <button type="submit" class="btn">POST</button>
+                </form>
+            </div>
+
+            <div class="grid">
+                <form method="POST" action="" onsubmit="markTime()">
+                    <input type="hidden" name="process" value="1s">
+                    <button type="submit" class="btn btn-orange">POST + 1s</button>
+                </form>
+
+                <form method="POST" action="" onsubmit="markTime()">
+                    <input type="hidden" name="process" value="2s">
+                    <button type="submit" class="btn btn-orange">POST + 2s</button>
+                </form>
+            </div>
+        </div>
+
+        <p class="explanation">
+            The <span style="color: var(--violet); font-weight: 600;">purple buttons</span> are lightweight and demonstrate the server is behaving well, while the <span style="color: var(--orange); font-weight: 600;">orange buttons</span> simulate pages that take more time to process.
+        </p>
+
+        <div class="footer">
+            <span class="label" style="color: white;"><?php echo gethostname(); ?></span>
+            <span class="badge">PHP <?php echo phpversion(); ?></span>
+        </div>
+    </div>
+
+    <script>
+        function markTime() {
+            localStorage.setItem('startTime', Date.now());
+        }
+
+        window.addEventListener('load', () => {
+            const startTime = localStorage.getItem('startTime');
+            if (startTime) {
+                const diff = (Date.now() - parseInt(startTime)) / 1000;
+                document.getElementById('total-duration').innerText = diff.toFixed(4) + 's';
+                localStorage.removeItem('startTime');
+            }
+        });
+    </script>
+</body>
+</html>
